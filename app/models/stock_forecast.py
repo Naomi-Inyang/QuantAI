@@ -29,7 +29,7 @@ class StockForecast(database.Model):
     
     def deserialize_data(self, data):
         try:
-            return jsonpickle.decode(self.memory)
+            return jsonpickle.decode(data)
         except Exception as e:
             print(f"Error decoding data: {e}")
             return None

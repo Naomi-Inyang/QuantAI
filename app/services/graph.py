@@ -6,9 +6,11 @@ from langgraph.prebuilt import ToolNode
 from langgraph.graph.message import add_messages
 from langchain_groq import ChatGroq
 from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.messages import ToolMessage
 from .prompt_templates import *
 from app.models import StockForecast
-from repository import base
+from app.repository import base
+from langgraph.types import Command
 
 memory = MemorySaver()
 
@@ -34,7 +36,13 @@ def stock_forecaster(state: State):
 
     stock_info = base.get_record_by_field(StockForecast, 'ticker', state['stock']).serialize()
 
-    return {'stock_prices': stock_info['retrieved_data'], 'predicted_prices': stock_info['forecast']}
+    # artifact = {'stock_prices': stock_info['retrieved_data'], 'predicted_prices': stock_info['forecast']}
+
+    return Command(update={
+        'stock_prices': stock_info['retrieved_data'],
+        'predicted_prices': stock_info['forecast'],
+        "messages": [ToolMessage( "Successfully looked up stock forecast" )]
+    })
 
 def market_analyser(state: State):
     analyst = get_market_analysis_template() | get_llm()
