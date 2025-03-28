@@ -3,7 +3,7 @@ from ..constants import *
 from ..repository import base
 from ..models import User, Chat
 from ..helpers import add_record_to_database
-from flask import abort
+import zlib
 import jsonpickle
 from langchain_core.messages import HumanMessage
 from .graph import get_graph
@@ -19,7 +19,7 @@ def start_chat(request):
     analysis = state['messages'][-1].content
 
     if user_id:
-        chat = Chat(user_id=user_id, title=stock, graph=jsonpickle.encode(graph), memory=jsonpickle.encode([{'AI': analysis}]))
+        chat = Chat(user_id=user_id, title=stock, graph=compress_data(graph), memory=compress_data([{'AI': analysis}]))
         add_record_to_database(chat)
         return {"analysis": analysis, "chat_id": chat.id, "predicted_prices": state['predicted_prices'], "stock_prices":state['stock_prices'] }
 
@@ -51,4 +51,6 @@ def continue_chat(request):
 def get_graph_configuration(thread_id: int):
     return {"configurable": {"thread_id": f"{thread_id}"}}
 
+    def compress_data(data):
+        return zlib.compress(jsonpickle.encode(data))
 

@@ -7,6 +7,9 @@ from .extensions import *
 from .constants import *
 from flask import Flask 
 
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+
 
 load_dotenv()
 
@@ -35,4 +38,11 @@ def initialize_extensions(app):
 
 def register_blueprints(app):
     app.register_blueprint(routes_blueprint)
+
+def run_scheduler(app):
+    from .jobs.store_forecasts import store_forecasts
+        
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(store_forecasts, IntervalTrigger(hours=12), args=[app])
+    scheduler.start()
 

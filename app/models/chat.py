@@ -2,6 +2,7 @@ from app.extensions import database, session
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import jsonpickle
+import zlib
 
 class Chat(database.Model):
     __tablename__ = 'chats'
@@ -29,18 +30,21 @@ class Chat(database.Model):
         }
     
     def update_memory(self, memory):
-        self.memory = jsonpickle.encode(memory)
+        self.memory = self.compress_data(memory)
         session.commit()
 
     def update_graph(self, graph):
-        self.graph = jsonpickle.encode(graph)
+        self.graph = self.compress_data(graph)
         session.commit()
 
     def decode_data(self, data):
         if not self.metadata:
             return None 
         try:
-            return jsonpickle.decode(data)
+            return jsonpickle.decode(zlib.decompress(data).decode())
         except Exception as e:
             print(f"Error decoding chat memory: {e}")
             return None
+        
+    def compress_data(data):
+        return zlib.compress(jsonpickle.encode(data))
