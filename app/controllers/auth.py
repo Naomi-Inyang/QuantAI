@@ -22,10 +22,8 @@ def google_login(name: str = Json(), email: str = Json(), google_id: str = Json(
         session = UserSession(user_id=user.id, token=token)
         add_record_to_database(session)
 
-        serialized_user = user.serialize()
-
         return create_response(CustomStatusCode.SUCCESS.value, SUCCESS_MESSAGE, {"id": user.id, "token":token,
-                                                                                 "email": email, "name": name, "notebooks":serialized_user["notebooks"]}), 200
+                                                                                 "email": email, "name": name}), 200
 
     except ValueError:
         return create_response(CustomStatusCode.BAD_REQUEST.value, "Invalid Token"), 400
@@ -55,10 +53,8 @@ def login(email: str = Json(), password: str = Json()):
             session = UserSession(user_id=user.id, token=token)
             add_record_to_database(session)
 
-            serialized_user = user.serialize()
-
             return create_response(CustomStatusCode.SUCCESS.value, SUCCESS_MESSAGE, {"id": user.id, "token": token,
-                                                                                     "email": email, "name": user.name, "notebooks":serialized_user["notebooks"]}), 200
+                                                                                     "email": email, "name": user.name}), 200
 
         return create_response(CustomStatusCode.FAILURE.value, INVALID_CREDENTIALS, {}), 400
 
