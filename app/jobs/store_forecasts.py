@@ -37,5 +37,18 @@ def store_forecasts(app):
 
         #TODO: Hi Vera, pls store the results in the db here using add_records_to_database function, it's imported already
         #also refer to repository.base for updating already saved stocks
+
+        #DOING:
+        for ticker, forecast_data in results.items():
+            if forecast_data is not None:
+                logging.info(f"Saving forecast data ...")
+                forecast_records = [
+                    {"ticker": ticker, "date": date, "predicted_value": value}
+                    for date, value in forecast_data.items()
+                ]
+                add_records_to_database(ticker, forecast_records)
+            else:
+                logging.warning(f"No forecast generated. Skipping database update.")
+
         logging.info("Scheduled job completed.")
 
