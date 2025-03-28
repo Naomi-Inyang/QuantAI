@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 from typing_extensions import TypedDict
 
 from langgraph.graph import StateGraph, END
@@ -11,27 +11,30 @@ from .prompt_templates import *
 from app.models import StockForecast
 from app.repository import base
 from langgraph.types import Command
+from langchain_core.tools.base import InjectedToolCallId
+from langgraph.prebuilt.chat_agent_executor import AgentState
+from langchain_core.runnables import RunnableConfig
 
 memory = MemorySaver()
 
 def get_llm():
     return ChatGroq(
-        model="llama3-8b-8192",
+        model="llama-3.3-70b-versatile",
         temperature=0,
         max_tokens=None,
         timeout=None,
         max_retries=2
     )
 
-class State(TypedDict):
+class State(AgentState):
     messages: Annotated[list, add_messages]
-    stock_prices: list
-    predicted_prices: list
+    stock_prices: list[dict, Any]
+    predicted_prices: list[dict, Any]
     end_chat: bool
     follow_up: str
     stock: str
 
-def stock_forecaster(state: State):
+def stock_forecaster(state: State, tool_call_id: Annotated[str, InjectedToolCallId]):
     """fetches stock prices and forecast"""
 
     stock_info = base.get_record_by_field(StockForecast, 'ticker', state['stock']).serialize()
@@ -41,7 +44,7 @@ def stock_forecaster(state: State):
     return Command(update={
         'stock_prices': stock_info['retrieved_data'],
         'predicted_prices': stock_info['forecast'],
-        "messages": [ToolMessage( "Successfully looked up stock forecast" )]
+        "messages": [ToolMessage( "Successfully looked up stock forecast", tool_call_id=tool_call_id)]
     })
 
 def market_analyser(state: State):
