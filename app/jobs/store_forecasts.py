@@ -1,11 +1,13 @@
 import logging
-
 from app.services.stock_forecast import fetch_stocks_data, preprocess_data, build_arimax_model
 from app.helpers import add_records_to_database
+from app.models import StockForecast
+from app.extensions import session
+import jsonpickle 
 
 # Test
 def store_forecasts(app):
-    with app.app_context():
+     with app.app_context():
         ticker_list = ['AAPL', 'GOOG', 'MSFT', 'TSLA']  
         time_period = '6m'  
         forecast_days = 7 
@@ -13,7 +15,7 @@ def store_forecasts(app):
         logging.info("Starting scheduled pipeline job...")
         
         # Fetch and preprocess stock data
-        df = fetch_stocks_data(ticker_list, time_period)
+        df, retrieved_stocks = fetch_stocks_data(ticker_list, time_period)
         if df is None:
             logging.error("No data fetched. Exiting job.")
             return
@@ -34,21 +36,25 @@ def store_forecasts(app):
             
             results[ticker] = build_arimax_model(df_ticker, forecast_days)
 
+        formatted_predictions = {}
 
-        #TODO: Hi Vera, pls store the results in the db here using add_records_to_database function, it's imported already
-        #also refer to repository.base for updating already saved stocks
+        for ticker, data in results.items():
 
-        #DOING:
-        for ticker, forecast_data in results.items():
-            if forecast_data is not None:
-                logging.info(f"Saving forecast data ...")
-                forecast_records = [
-                    {"ticker": ticker, "date": date, "predicted_value": value}
-                    for date, value in forecast_data.items()
-                ]
-                add_records_to_database(ticker, forecast_records)
-            else:
-                logging.warning(f"No forecast generated. Skipping database update.")
+            formatted_predictions[ticker] = [
+                {"date": date, "price": round(price, 2)}
+                for date, price in zip(data["forecast_dates"], data["forecast"])
+            ]
 
-        logging.info("Scheduled job completed.")
+        session.query(StockForecast).delete()
+        session.commit()
 
+        stock_forecast_info = []
+        for ticker in ticker_list:
+            stock_forecast_info.append(StockForecast(
+                ticker=ticker,
+                retrieved_data=jsonpickle.encode(retrieved_stocks[ticker]),
+                forecast=jsonpickle.encode(formatted_predictions[ticker])
+            ))
+
+        add_records_to_database(stock_forecast_info)
+        

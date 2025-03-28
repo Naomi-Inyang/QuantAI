@@ -83,13 +83,24 @@ def fetch_stocks_data(ticker_list, time_period):
         
         # Optionally, reorder columns if desired (e.g., Ticker as a column, then Open, High, Low, Close, Volume)
         df = df[['Ticker', 'Open', 'High', 'Low', 'Close', 'Volume']]
+
+        retrieved_stocks = {}
+
+        for ticker in df['Ticker'].unique():
+            df_ticker = df[df['Ticker'] == ticker]
+            retrieved_stocks[ticker] = [
+                {"date": date.strftime("%Y-%m-%d"), "price": round(close, 2)}
+                for date, close in zip(df_ticker.index, df_ticker['Close'])
+            ]
         
         logging.info("Successfully fetched and transformed data for multiple tickers.")
-        return df
+        return df, retrieved_stocks
     
     except Exception as e:
         logging.error(f"Error fetching data for multiple tickers: {e}")
         return None
+    
+
 def preprocess_data(df):
     """
     Preprocess stock data (with Date as the index) and calculate technical indicators
@@ -290,7 +301,7 @@ def run_pipeline(ticker_list, time_period, forecast_days=7, exog_cols=None):
     - A dictionary where keys are ticker symbols and values are the forecast results dictionary.
     """
     # Fetch raw data
-    raw_data = fetch_stocks_data(ticker_list, time_period)
+    raw_data, retrieved_data = fetch_stocks_data(ticker_list, time_period)
     if raw_data is None:
         logging.error("No raw data fetched. Pipeline aborted.")
         return None
@@ -317,18 +328,33 @@ def run_pipeline(ticker_list, time_period, forecast_days=7, exog_cols=None):
         # Call the prediction model function for this ticker.
         pred = build_arimax_model(df_ticker, forecast_days=forecast_days, exog_cols=exog_cols)
         predictions[ticker] = pred
-        
-    return predictions
-TICKERS = ["AAPL", "GOOG", "MSFT", "TSLA"]
-TIME_PERIOD = '13y'  # Options: '1m', '3m', '6m', '1y'
-FORECAST_DAYS = 7
-col = ['Open', 'Volume', 'MA20', 'Signal', 'RSI', 'Daily_Return', 'Volatility']
-# Example usage:
-# Assume `preprocessed_data` is your DataFrame after calling preprocess_data()
-all_predictions = run_pipeline(ticker_list = TICKERS, time_period = TIME_PERIOD, exog_cols=col)
 
-# To print the prediction for each ticker:
-for ticker, prediction in all_predictions.items():
-    print(f"Ticker: {ticker}")
-    print(prediction)
-    print("-----------------------------------------------------------------------------------------------------------------------------------")
+    print('predictions')
+    print(predictions)
+    print('\n')
+
+
+    formatted_predictions = {}
+
+    for ticker, data in predictions.items():
+
+        formatted_predictions[ticker] = [
+            {"date": date, "price": round(price, 2)}
+            for date, price in zip(data["forecast_dates"], data["forecast"])
+        ]
+
+    return retrieved_data, formatted_predictions
+
+# TICKERS = ["AAPL", "GOOG", "MSFT", "TSLA"]
+# TIME_PERIOD = '13y'  # Options: '1m', '3m', '6m', '1y'
+# FORECAST_DAYS = 7
+# col = ['Open', 'Volume', 'MA20', 'Signal', 'RSI', 'Daily_Return', 'Volatility']
+# # Example usage:
+# # Assume `preprocessed_data` is your DataFrame after calling preprocess_data()
+# all_predictions = run_pipeline(ticker_list = TICKERS, time_period = TIME_PERIOD, exog_cols=col)
+
+# # To print the prediction for each ticker:
+# for ticker, prediction in all_predictions.items():
+#     print(f"Ticker: {ticker}")
+#     print(prediction)
+#     print("-----------------------------------------------------------------------------------------------------------------------------------")

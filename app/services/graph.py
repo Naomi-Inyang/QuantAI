@@ -1,15 +1,14 @@
 from typing import Annotated
 from typing_extensions import TypedDict
 
-from langgraph.graph import StateGraph, START, END
-from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.graph import StateGraph, END
+from langgraph.prebuilt import ToolNode
 from langgraph.graph.message import add_messages
 from langchain_groq import ChatGroq
 from langgraph.checkpoint.memory import MemorySaver
-from ..constants import DUMMY_STOCK_PRICES
 from .prompt_templates import *
-
-import re
+from app.models import StockForecast
+from repository import base
 
 memory = MemorySaver()
 
@@ -28,20 +27,14 @@ class State(TypedDict):
     predicted_prices: list
     end_chat: bool
     follow_up: str
-
-def stock_prices(state: State):
-    """fetches stock prices"""
-
-    return DUMMY_STOCK_PRICES
+    stock: str
 
 def stock_forecaster(state: State):
-    pattern = r"(\d{4}-\d{2}-\d{2}): \$?([\d,]+\.\d{2})"
+    """fetches stock prices and forecast"""
 
-    matches = re.findall(pattern, state['messages'][2].content)
+    stock_info = base.get_record_by_field(StockForecast, 'ticker', state['stock']).serialize()
 
-    structured_prices = [{"date": date, "price": float(price.replace(",", ""))} for date, price in matches]
-
-    return {'stock_prices': structured_prices, 'predicted_prices': ['1,834', '1,734', '1,934', '1,724', '1,254', '1,834', '1,734']}
+    return {'stock_prices': stock_info['retrieved_data'], 'predicted_prices': stock_info['forecast']}
 
 def market_analyser(state: State):
     analyst = get_market_analysis_template() | get_llm()
@@ -73,7 +66,7 @@ def route_logic(state: State):
     else:
         return 'tools'
 
-tools = [stock_prices]
+tools = [stock_forecaster]
 llm_with_tools = get_llm().bind_tools(tools=tools)
 
 def chatbot(state: State):
@@ -94,8 +87,7 @@ def get_graph():
     graph_builder.add_node("tools", tool_node)
     graph_builder.add_conditional_edges("chatbot", route_logic, {"tools": "tools", "follow_up_chatbot": "follow_up_chatbot", END: END})
 
-    graph_builder.add_edge('tools', 'stock_forecaster')
-    graph_builder.add_edge('stock_forecaster', 'market_analyser')
+    graph_builder.add_edge('tools', 'market_analyser')
     graph_builder.add_edge('follow_up_chatbot', 'chatbot')
     graph_builder.add_edge('market_analyser', END)
     graph_builder.set_entry_point('chatbot')
