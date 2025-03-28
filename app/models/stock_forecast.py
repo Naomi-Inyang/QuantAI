@@ -2,8 +2,6 @@ from app.extensions import database, session
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import jsonpickle
-import zlib
-
 
 class StockForecast(database.Model):
     __tablename__ = "stock_forecasts"
