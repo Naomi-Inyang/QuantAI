@@ -103,6 +103,6 @@ def get_graph():
     graph_builder.add_edge('market_analyser', END)
     graph_builder.set_entry_point('chatbot')
 
-    graph = graph_builder.compile(checkpointer=memory)
+    graph = graph_builder.compile()
 
     return graph

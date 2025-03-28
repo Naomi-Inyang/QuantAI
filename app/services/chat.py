@@ -19,7 +19,7 @@ def start_chat(request):
 
     graph = get_graph()
 
-    state = graph.invoke({'messages' : [HumanMessage(content=f"{stock}")]}, config=get_graph_configuration('1'))
+    state = graph.invoke({'messages' : [HumanMessage(content=f"{stock}")]})
 
     analysis = state['messages'][-1].content
 
@@ -46,7 +46,7 @@ def continue_chat(request):
 
     graph = serialized_chat['graph']
 
-    state = graph.invoke({'messages' : [HumanMessage(content=query)], 'follow_up': query, 'end_chat': False}, config=get_graph_configuration(1))
+    state = graph.invoke({'messages' : [HumanMessage(content=query)], 'follow_up': query, 'end_chat': False})
 
     response = state['messages'][-2].content
 
