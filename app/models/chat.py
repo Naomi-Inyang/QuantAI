@@ -10,8 +10,8 @@ class Chat(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     user_id = database.Column(database.Integer, database.ForeignKey('users.id'), nullable=False)
     title = database.Column(database.String(255), nullable=True)
-    graph = database.Column(database.Text, nullable=False)
-    memory = database.Column(database.Text, nullable=False)
+    graph = database.Column(database.LargeBinary, nullable=False)
+    memory = database.Column(database.LargeBinary, nullable=False)
     created_at = database.Column(database.DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="chats") 
@@ -25,8 +25,16 @@ class Chat(database.Model):
             'id': self.id,
             'user_id': self.user_id,
             "title": self.title,
-            "memory": self.decode_data(self.memory),
-            "graph": self.decode_data(self.graph)
+            "memory": self.extract_data(self.memory),
+            "graph": self.extract_data(self.graph)
+        }
+    
+    def serialize_without_graph(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            "title": self.title,
+            "memory": self.extract_data(self.memory)
         }
     
     def update_memory(self, memory):
@@ -37,14 +45,16 @@ class Chat(database.Model):
         self.graph = self.compress_data(graph)
         session.commit()
 
-    def decode_data(self, data):
-        if not self.metadata:
-            return None 
+    def extract_data(self, data):
         try:
-            return jsonpickle.decode(zlib.decompress(data).decode())
+            decompressed = zlib.decompress(data).decode("utf-8")
+            return jsonpickle.decode(decompressed)
+
         except Exception as e:
-            print(f"Error decoding chat memory: {e}")
+            print(f"Error decoding : {e}")
             return None
         
-    def compress_data(data):
-        return zlib.compress(jsonpickle.encode(data))
+    def compress_data(self, data):
+        string_data = jsonpickle.encode(data).encode()
+        print(string_data)
+        return zlib.compress(string_data)

@@ -6,7 +6,12 @@ from ..helpers import add_record_to_database
 import zlib
 import jsonpickle
 from langchain_core.messages import HumanMessage
+from langgraph.graph.state import CompiledStateGraph 
 from .graph import get_graph
+
+def get_user_chats(id: int):
+    chats = base.get_records_by_field(Chat, "user_id", id)
+    return {'chats' : [chat.serialize_without_graph() for chat in chats]}
 
 def start_chat(request):
     stock = request.get('stock')
@@ -17,6 +22,11 @@ def start_chat(request):
     state = graph.invoke({'messages' : [HumanMessage(content=f"{stock}")]}, config=get_graph_configuration('1'))
 
     analysis = state['messages'][-1].content
+
+    # c = compress_data(graph)
+    # print(compress_data(c))
+    # e = jsonpickle.decode(zlib.decompress(c).decode("utf-8"))
+    # print(type(e))
 
     if user_id:
         chat = Chat(user_id=user_id, title=stock, graph=compress_data(graph), memory=compress_data([{'AI': analysis}]))
@@ -51,6 +61,9 @@ def continue_chat(request):
 def get_graph_configuration(thread_id: int):
     return {"configurable": {"thread_id": f"{thread_id}"}}
 
-    def compress_data(data):
-        return zlib.compress(jsonpickle.encode(data))
+def compress_data(data):
+    string_data = jsonpickle.encode(data).encode()
+    return zlib.compress(string_data)
+    
+    
 
