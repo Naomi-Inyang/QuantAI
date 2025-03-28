@@ -1,5 +1,5 @@
 from .user import User
 from .user_session import UserSession
-from .notebook import Notebook
+from .chat import Chat
 
-__all__ = ['User', 'Notebook', 'UserSession']
+__all__ = ['User', 'Chat', 'UserSession']

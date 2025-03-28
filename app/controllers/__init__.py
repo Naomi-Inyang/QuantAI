@@ -5,5 +5,4 @@ routes_blueprint = Blueprint(
 )
 
 from . import auth
-from . import notebook
-from . import dashboard
+from . import chat

@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 def get_record_by_field(model, field, value):
     data = session.query(model).filter(getattr(model, field) == value).first()
-    print(data)
+
     if data is None:
         abort(404, f"{model.__name__} not found")
 

@@ -11,7 +11,7 @@ class User(database.Model):
     email = database.Column(database.String(255), nullable=False, unique=True)
     password = database.Column(database.String(255), nullable=True)
     google_id = database.Column(database.String(255), nullable=True)
-    notebooks = relationship("Notebook", back_populates="user", lazy="dynamic")
+    chats = relationship("Chat", back_populates="user", lazy="dynamic")
     created_at = database.Column(database.DateTime(timezone=True), server_default=func.now())
     updated_at = database.Column(database.DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -21,5 +21,5 @@ class User(database.Model):
     def  serialize(self):
         return {
             'fullname': self.fullname,
-            "notebooks": [notebook.serialize() for notebook in self.notebooks]
+            "chats": [chat.serialize() for chat in self.chats]
         }
